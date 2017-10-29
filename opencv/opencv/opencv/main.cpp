@@ -1,14 +1,12 @@
-
 //--------------------------------------【程序说明】-------------------------------------------
-//		程序说明：《OpenCV3编程入门》OpenCV3版书本配套示例程序06
-//		程序描述：使用VideoCapture类进行视频读取和播放
+//		程序说明：《OpenCV3编程入门》OpenCV3版书本配套示例程序07
+//		程序描述：使用VideoCapture类调用摄像头读入视频并显示
 //		开发测试所用操作系统： Windows 7 64bit
 //		开发测试所用IDE版本：Visual Studio 2010
 //		开发测试所用OpenCV版本：	3.0 beta
 //		2014年11月 Created by @浅墨_毛星云
 //		2014年11月 Revised by @浅墨_毛星云
 //------------------------------------------------------------------------------------------------
-
 
 //---------------------------------【头文件、命名空间包含部分】----------------------------
 //		描述：包含程序所使用的头文件和命名空间
@@ -21,20 +19,19 @@ using namespace cv;
 //-------------------------------------------------------------------------------------------------
 int main()
 {
-	//【1】读入视频
-	//VideoCapture capture("E:\\opencvstu\\picture\\1.avi");
-	VideoCapture capture;
-	capture.open("E:\\opencvstu\\picture\\1.avi");
+	//【1】从摄像头读入视频
+	VideoCapture capture(1);
+	Mat edges;
 	//【2】循环显示每一帧
 	while (1)
 	{
-		Mat frame;//定义一个Mat变量，用于存储每一帧的图像
+		Mat frame;  //定义一个Mat变量，用于存储每一帧的图像
 		capture >> frame;  //读取当前帧
-		if (frame.empty())
-		{
-			break;
-		}
-		imshow("读取视频", frame);  //显示当前帧
+		cvtColor(frame,edges,COLOR_BGR2GRAY);
+		blur(edges,edges,Size(8,8));
+		Canny(edges,edges,0,30,3);
+		imshow("原始图像",frame);
+		imshow("读取视频", edges);  //显示当前帧
 		waitKey(30);  //延时30ms
 	}
 	return 0;
