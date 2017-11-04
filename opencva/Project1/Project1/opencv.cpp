@@ -7,23 +7,20 @@ using namespace cv;
 using namespace std;
 int main(int argc, char*argv[])
 {
-	Mat srcImage, grayImage, dstImage, edgeImage,grad_x,grad_y,abs_grad_x,abs_grad_y;
-	srcImage = imread("E:\\opencvstu\\picture\\dog.bmp");
-	if (!srcImage.data) { cout << "read Error!\r\n"; return -1; }
-	//blur(srcImage,grayImage,Size(10,10));
-	Sobel(srcImage,grad_x,CV_16S,1,0,3,1,1,BORDER_DEFAULT);
-	convertScaleAbs(grad_x,abs_grad_x);
-	imshow("x方向的分量",abs_grad_x);
-
-	Sobel(srcImage, grad_y, CV_16S, 0, 1, 3, 1, 1, BORDER_DEFAULT);
-	convertScaleAbs(grad_y, abs_grad_y);
-	imshow("y方向的分量", abs_grad_y);
-	/*GaussianBlur(srcImage,grayImage,Size(3,3),0,0);
-	cvtColor(grayImage,grayImage,COLOR_BGR2BGRA);
-	Canny(grayImage,edgeImage,40,30,3);*/
-	/*dstImage = Scalar::all(0);
-	imshow("黑色",dstImage);*/
-	addWeighted(abs_grad_x,0.5,abs_grad_y,0.5,0,dstImage);
-	imshow("合成图像",dstImage);
+	const int num = 7;
+	char filename[50];
+	char windowname[30];
+	Mat srcImage, grayImage, dstImage, edgeImage;
+	for (int i = 0; i < num; i++)
+	{
+		sprintf_s(filename,100,"E:\\opencvstu\\picture\\number\\%d.jpg",i);
+		cout << filename << endl;
+		sprintf_s(windowname, 100, "windowname【%d】", i);
+		cout << windowname << endl;
+		srcImage = imread(filename);
+		if (!srcImage.data) { std::cout << "Read Error!" << std::endl; return -1; }
+		namedWindow(windowname,1);
+		imshow(windowname,srcImage);
+	}
 	waitKey(0);
 }
