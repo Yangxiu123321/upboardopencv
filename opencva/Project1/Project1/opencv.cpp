@@ -7,22 +7,23 @@ using namespace cv;
 using namespace std;
 int main(int argc, char*argv[])
 {
-	Mat srcImage, grayImage, imgColor, contoursImage;
-	srcImage = imread("E:\\opencvstu\\picture\\dog.jpg",0);
+	Mat srcImage, grayImage, dstImage, edgeImage,grad_x,grad_y,abs_grad_x,abs_grad_y;
+	srcImage = imread("E:\\opencvstu\\picture\\dog.bmp");
 	if (!srcImage.data) { cout << "read Error!\r\n"; return -1; }
-	//cvtColor(srcImage,grayImage,COLOR_BGR2GRAY);
-	//GaussianBlur(grayImage, grayImage, Size(3, 3), 3, 3);
-	////blur(grayImage,grayImage,Size(3,3));
-	threshold(srcImage, grayImage,100,255, CV_THRESH_OTSU);
-	imshow("1", srcImage);
-	//bitwise_not(grayImage,grayImage);//黑白图像反转
-	//对图像进行二值化
-	imshow("2", grayImage);
-	vector<vector<Point>>contours;
-	vector<Vec4i>hierarchy;
-	findContours(grayImage,contours, hierarchy,CV_RETR_CCOMP,CV_CHAIN_APPROX_NONE);
-	Mat resultImage = Mat::zeros(srcImage.size(), CV_8U);
-	drawContours(resultImage, contours, -1, Scalar(255, 0, 255));
-	imshow("轮廓图像", resultImage);
+	//blur(srcImage,grayImage,Size(10,10));
+	Sobel(srcImage,grad_x,CV_16S,1,0,3,1,1,BORDER_DEFAULT);
+	convertScaleAbs(grad_x,abs_grad_x);
+	imshow("x方向的分量",abs_grad_x);
+
+	Sobel(srcImage, grad_y, CV_16S, 0, 1, 3, 1, 1, BORDER_DEFAULT);
+	convertScaleAbs(grad_y, abs_grad_y);
+	imshow("y方向的分量", abs_grad_y);
+	/*GaussianBlur(srcImage,grayImage,Size(3,3),0,0);
+	cvtColor(grayImage,grayImage,COLOR_BGR2BGRA);
+	Canny(grayImage,edgeImage,40,30,3);*/
+	/*dstImage = Scalar::all(0);
+	imshow("黑色",dstImage);*/
+	addWeighted(abs_grad_x,0.5,abs_grad_y,0.5,0,dstImage);
+	imshow("合成图像",dstImage);
 	waitKey(0);
 }
