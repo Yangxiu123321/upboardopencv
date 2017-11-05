@@ -1,96 +1,108 @@
-﻿#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
+﻿//#include<iostream>
+//#include<opencv2/opencv.hpp>
+//#include<vector>
+//
+//using namespace cv;
+//using namespace std;
+
+//int main()
+//{
+	//首先确定构成轮廓的点集
+	/*vector<Point2f> g_vsrcPoints;*/
+	//向容器内存储点的坐标
+/*	g_vsrcPoints.push_back(Point2f(0, 0));
+	g_vsrcPoints.push_back(Point2f(0, 10));
+	g_vsrcPoints.push_back(Point2f(1, 10));
+	g_vsrcPoints.push_back(Point2f(2, 10));
+	g_vsrcPoints.push_back(Point2f(4, 10));
+	g_vsrcPoints.push_back(Point2f(0, 0))*/;
+	//绘制出轮廓
+	////vector<vector<Point2f>> g_vvsrcPoints(1);
+	//Mat dstImage = Mat::zeros(Size(600, 600), CV_8UC3);
+	//drawContours(dstImage, g_vsrcPoints, 0, Scalar(255), 3, 8);
+
+	////计算轮廓的面积
+/*	double g_dsrcArea = contourArea(g_vsrcPoints, false);
+	cout << "【原始轮廓的面积为：】" << g_dsrcArea << end*/;
+
+	////利用曲线逼近，计算逼近曲线的面积
+	////首先创建一个逼近曲线
+	//vector<Point2f> approx;
+	//approxPolyDP(g_vsrcPoints, approx, 5, true);
+	////接着计算得到的逼近曲线的面积]
+	//double g_dapproxArea = contourArea(approx, true);
+	//cout << "【逼近曲线围成的轮廓的面积为：】" << g_dapproxArea << endl;
+
+	////绘制的轮廓是无法看出来的
+	//imshow("【显示窗口】", dstImage);
+
+	/*waitKey(0);
+
+	return 0;
+}*/
+//#include "opencv2/opencv.hpp"
+//using namespace cv;
+//using namespace std;
+//int main(int argc,char*argv[]) {
+//	Mat srcImage,blurImage,cannyImg,grayImage;
+//	srcImage = imread("E:\\opencvstu\\picture\\polygon\\3.png");
+//	if (srcImage.empty()) { cout << "Read Error!"; return -1; }
+//	imshow("原始图像",srcImage);
+//	medianBlur(srcImage,blurImage,11);
+//	imshow("滤波图像",blurImage);
+//	Canny(srcImage,cannyImg,210,180,3);
+//	imshow("Canny检测",cannyImg);
+//	vector<Vec2f>lines;
+//	HoughLines(cannyImg,lines,1, CV_PI / 180,100);
+//	cout << lines.size() << endl;
+//	waitKey(0);
+//	return 0;
+//}
+/***********************************************/
+#include<iostream>
+#include<opencv2/opencv.hpp>
+#include<vector>
+
 using namespace cv;
 using namespace std;
-//设置全局参数
-Mat srcImage, srcGray;
-int thresh = 100;
-int max_thresh = 255;
-RNG rng(12345);
-void thresh_callback(int, void*)
-{
-	Mat srcTemp = srcImage.clone();
-	Mat threMat;
-	//轮廓检测参数
-	vector<vector<Point> > contours;
-	vector<Vec4i> hierarchy;
-	//阈值化操作
-	threshold(srcGray, threMat, thresh, 255, THRESH_BINARY);
-	//轮廓检测
-	findContours(threMat, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
-	//凸包及缺陷检测参数
-	vector<vector<Point> > pointHull(contours.size());
-	vector<vector<int> > intHull(contours.size());
-	vector<vector<Vec4i> > hullDefect(contours.size());
-	for (size_t i = 0; i < contours.size(); i++)
-	{
-		//Point类型凸包检测
-		convexHull(Mat(contours[i]), pointHull[i], false);
-		//int 类型凸包检测
-		convexHull(Mat(contours[i]), intHull[i], false);
-		//凸包缺陷检测
-		convexityDefects(Mat(contours[i]), intHull[i], hullDefect[i]);
-	}
-	//绘制凸包及缺陷检测
-	Mat drawing = Mat::zeros(threMat.size(), CV_8UC1);
-	for (size_t i = 0; i < contours.size(); i++)
-	{
-		Scalar color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-		drawContours(drawing, contours, i, color, 1, 8, vector<Vec4i>(), 0, Point());
-		drawContours(drawing, pointHull, i, color, 1, 8, vector<Vec4i>(), 0, Point());
-		//绘制缺陷
-		size_t count = contours[i].size();
-		if (count < 300)
-			continue;
-		//设置凸包缺陷迭代器
-		vector<Vec4i>::iterator iterDefects = hullDefect[i].begin();
-		//遍历得到4个特征量
-		while (iterDefects != hullDefect[i].end())
-		{
-			Vec4i& v = (*iterDefects);
-			//起始位置
-			int startidx = v[0];
-			Point ptStart(contours[i][startidx]);
-			//终止位置
-			int endidx = v[1];
-			Point ptEnd(contours[i][endidx]);
-			//内凸壳最远的点缺陷
-			int faridx = v[2];
-			Point ptFar(contours[i][faridx]);
-			//凸点之间的最远点
-			int depth = v[3] / 256;
-			//绘制相应的线与圆检测结果
-			if (depth > 20 && depth < 80)
-			{
-				line(drawing, ptStart, ptFar, CV_RGB(0, 255, 0), 2);
-				line(drawing, ptEnd, ptFar, CV_RGB(0, 255, 0), 2);
-				circle(drawing, ptStart, 4, Scalar(255, 0, 100), 2);
-				circle(drawing, ptEnd, 4, Scalar(255, 0, 100), 2);
-				circle(drawing, ptFar, 4, Scalar(100, 0, 255), 2);
-			}
-			iterDefects++;
-		}
-	}
-	imshow("result", drawing);
-}
+
 int main()
 {
-	VideoCapture capture(1);
-	Mat srcImage;
-	char* source_window = "Source";
-	createTrackbar("Thewshold:", "Source", &thresh, max_thresh, thresh_callback);
-	while (1)
+	Mat srcImage = imread("E:\\opencvstu\\picture\\polygon\\4.bmp");
+	imshow("【原图】", srcImage);
+
+	//首先对图像进行空间的转换
+	Mat grayImage;
+	cvtColor(srcImage, grayImage, CV_BGR2GRAY);
+	//对灰度图进行滤波
+	GaussianBlur(grayImage, grayImage, Size(3, 3), 0, 0);
+	imshow("【滤波后的图像】", grayImage);
+
+	//为了得到二值图像，对灰度图进行边缘检测
+	Mat cannyImage;
+	Canny(grayImage, cannyImage, 128, 255, 3);
+	//在得到的二值图像中寻找轮廓
+	vector<vector<Point>> contours;
+	vector<Vec4i> hierarchy;
+	findContours(cannyImage, contours, hierarchy, RETR_TREE, CHAIN_APPROX_NONE, Point(0, 0));
+
+	//绘制轮廓
+	for (int i = 0; i < (int)contours.size(); i++)
 	{
-		capture >> srcImage;
-		cvtColor(srcImage, srcGray, CV_BGR2GRAY);
-		blur(srcGray, srcGray, Size(3, 3));
-		namedWindow(source_window, CV_WINDOW_AUTOSIZE);
-		imshow(source_window, srcImage);
-		thresh_callback(0, 0);
-		waitKey(30);
-	}	
+		drawContours(cannyImage, contours, i, Scalar(255), 1, 8);
+	}
+	imshow("【处理后的图像】", cannyImage);
+
+	//计算轮廓的面积
+	for (int i = 0; i < (int)contours.size(); i++)
+	{
+		double g_dConArea = contourArea(contours[i], true);
+		double g_dLength = arcLength(contours[i],true);
+		cout << "【用轮廓面积计算函数计算出来的第" << i << "个轮廓的面积为：】" << g_dConArea  << endl;
+		cout << "【周长为:】" << g_dLength << endl;
+	}
+
+	waitKey(0);
+
 	return 0;
-}
+} 
