@@ -1,108 +1,57 @@
-﻿//#include<iostream>
-//#include<opencv2/opencv.hpp>
-//#include<vector>
-//
-//using namespace cv;
-//using namespace std;
+﻿
+//--------------------------------------【程序说明】-------------------------------------------
+//		程序说明：《OpenCV3编程入门》OpenCV3版书本配套示例程序49
+//		程序描述：漫水填充floodFill函数用法示例
+//		开发测试所用操作系统： Windows 7 64bit
+//		开发测试所用IDE版本：Visual Studio 2010
+//		开发测试所用OpenCV版本：	3.0 beta
+//		2014年11月 Created by @浅墨_毛星云
+//		2014年12月 Revised by @浅墨_毛星云
+//------------------------------------------------------------------------------------------------
 
-//int main()
-//{
-	//首先确定构成轮廓的点集
-	/*vector<Point2f> g_vsrcPoints;*/
-	//向容器内存储点的坐标
-/*	g_vsrcPoints.push_back(Point2f(0, 0));
-	g_vsrcPoints.push_back(Point2f(0, 10));
-	g_vsrcPoints.push_back(Point2f(1, 10));
-	g_vsrcPoints.push_back(Point2f(2, 10));
-	g_vsrcPoints.push_back(Point2f(4, 10));
-	g_vsrcPoints.push_back(Point2f(0, 0))*/;
-	//绘制出轮廓
-	////vector<vector<Point2f>> g_vvsrcPoints(1);
-	//Mat dstImage = Mat::zeros(Size(600, 600), CV_8UC3);
-	//drawContours(dstImage, g_vsrcPoints, 0, Scalar(255), 3, 8);
 
-	////计算轮廓的面积
-/*	double g_dsrcArea = contourArea(g_vsrcPoints, false);
-	cout << "【原始轮廓的面积为：】" << g_dsrcArea << end*/;
-
-	////利用曲线逼近，计算逼近曲线的面积
-	////首先创建一个逼近曲线
-	//vector<Point2f> approx;
-	//approxPolyDP(g_vsrcPoints, approx, 5, true);
-	////接着计算得到的逼近曲线的面积]
-	//double g_dapproxArea = contourArea(approx, true);
-	//cout << "【逼近曲线围成的轮廓的面积为：】" << g_dapproxArea << endl;
-
-	////绘制的轮廓是无法看出来的
-	//imshow("【显示窗口】", dstImage);
-
-	/*waitKey(0);
-
-	return 0;
-}*/
-//#include "opencv2/opencv.hpp"
-//using namespace cv;
-//using namespace std;
-//int main(int argc,char*argv[]) {
-//	Mat srcImage,blurImage,cannyImg,grayImage;
-//	srcImage = imread("E:\\opencvstu\\picture\\polygon\\3.png");
-//	if (srcImage.empty()) { cout << "Read Error!"; return -1; }
-//	imshow("原始图像",srcImage);
-//	medianBlur(srcImage,blurImage,11);
-//	imshow("滤波图像",blurImage);
-//	Canny(srcImage,cannyImg,210,180,3);
-//	imshow("Canny检测",cannyImg);
-//	vector<Vec2f>lines;
-//	HoughLines(cannyImg,lines,1, CV_PI / 180,100);
-//	cout << lines.size() << endl;
-//	waitKey(0);
-//	return 0;
-//}
-/***********************************************/
-#include<iostream>
-#include<opencv2/opencv.hpp>
-#include<vector>
-
+//---------------------------------【头文件、命名空间包含部分】----------------------------
+//		描述：包含程序所使用的头文件和命名空间
+//------------------------------------------------------------------------------------------------
+#include <opencv2/opencv.hpp>  
+#include <opencv2/imgproc/imgproc.hpp>  
+#include <iostream>
+#define WINDOWS_NAME "【效果图】"
 using namespace cv;
 using namespace std;
+int g_SlideV1 = 1;
+int g_SlideV2 = 254;
+int g_SlideV1Min = 254;
+int g_SlideV2Max = 254;
+Mat src;
+Mat src1, src2;
+Rect ccomp;
 
-int main()
+//-----------------------------------【main( )函数】--------------------------------------------  
+//      描述：控制台应用程序的入口函数，我们的程序从这里开始  
+//----------------------------------------------------------------------------------------------- 
+void on_TrackBar(int ,void *) {
+	src = src1.clone();
+	floodFill(src, Point(50, 300),/*1*/ Scalar(255, 0, 0), &ccomp, Scalar(g_SlideV1, g_SlideV1, g_SlideV1), Scalar(g_SlideV2, g_SlideV2, g_SlideV2));
+	imshow(WINDOWS_NAME, src);
+	cout <<"V1 is " <<g_SlideV1 << endl;
+	cout <<"V2 is " << g_SlideV2 << endl;
+
+}
+int main(int argv,char*argc[])
 {
-	Mat srcImage = imread("E:\\opencvstu\\picture\\polygon\\4.bmp");
-	imshow("【原图】", srcImage);
-
-	//首先对图像进行空间的转换
-	Mat grayImage;
-	cvtColor(srcImage, grayImage, CV_BGR2GRAY);
-	//对灰度图进行滤波
-	GaussianBlur(grayImage, grayImage, Size(3, 3), 0, 0);
-	imshow("【滤波后的图像】", grayImage);
-
-	//为了得到二值图像，对灰度图进行边缘检测
-	Mat cannyImage;
-	Canny(grayImage, cannyImage, 128, 255, 3);
-	//在得到的二值图像中寻找轮廓
-	vector<vector<Point>> contours;
-	vector<Vec4i> hierarchy;
-	findContours(cannyImage, contours, hierarchy, RETR_TREE, CHAIN_APPROX_NONE, Point(0, 0));
-
-	//绘制轮廓
-	for (int i = 0; i < (int)contours.size(); i++)
-	{
-		drawContours(cannyImage, contours, i, Scalar(255), 1, 8);
-	}
-	imshow("【处理后的图像】", cannyImage);
-
-	//计算轮廓的面积
-	for (int i = 0; i < (int)contours.size(); i++)
-	{
-		double g_dConArea = contourArea(contours[i], true);
-		double g_dLength = arcLength(contours[i],true);
-		cout << "【用轮廓面积计算函数计算出来的第" << i << "个轮廓的面积为：】" << g_dConArea  << endl;
-		cout << "【周长为:】" << g_dLength << endl;
-	}
-
+	src = imread("E:\\opencvupboard\\opencva\\Project1\\Project1\\1.jpg");
+	src1 = src.clone(); src2 = src.clone();
+	imshow("【原始图】", src);
+	namedWindow(WINDOWS_NAME,1);
+	char g_MinName[100];
+	sprintf_s(g_MinName,20,"min:1", g_SlideV1);
+	char g_MaxName[100];
+	sprintf_s(g_MaxName, 20, "max:1", g_SlideV2);
+	createTrackbar(g_MinName, WINDOWS_NAME, &g_SlideV1, g_SlideV1Min, on_TrackBar);
+	createTrackbar(g_MaxName, WINDOWS_NAME, &g_SlideV2, g_SlideV2Max, on_TrackBar);
+	on_TrackBar(g_SlideV1, 0);
+	on_TrackBar(g_SlideV2, 0);
 	waitKey(0);
-
 	return 0;
-} 
+}
