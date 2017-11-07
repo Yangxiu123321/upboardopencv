@@ -1,6 +1,6 @@
 ﻿//--------------------------------------【程序说明】-------------------------------------------
-//		程序说明：《OpenCV3编程入门》OpenCV3版书本配套示例程序61
-//		程序描述：HoughLines函数用法示例
+//		程序说明：《OpenCV3编程入门》OpenCV3版书本配套示例程序73
+//		程序描述：创建包围轮廓的矩形边界
 //		开发测试所用操作系统： Windows 7 64bit
 //		开发测试所用IDE版本：Visual Studio 2010
 //		开发测试所用OpenCV版本：	3.0 beta
@@ -13,79 +13,91 @@
 //---------------------------------【头文件、命名空间包含部分】----------------------------
 //		描述：包含程序所使用的头文件和命名空间
 //------------------------------------------------------------------------------------------------
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include <iostream>
 using namespace cv;
 using namespace std;
 
 
-//-----------------------------------【main( )函数】--------------------------------------------
-//		描述：控制台应用程序的入口函数，我们的程序从这里开始
-//-----------------------------------------------------------------------------------------------
-void DrawLine(Mat img, Point start, Point end)
+
+//-----------------------------------【ShowHelpText( )函数】-----------------------------
+//          描述：输出一些帮助信息
+//----------------------------------------------------------------------------------------------
+static void ShowHelpText()
 {
-	int thickness = 2;
-	int lineType = 8;
-	line(img,
-		start,
-		end,
-		Scalar(0, 0, 0),
-		thickness,
-		lineType);
+
+	//输出欢迎信息和OpenCV版本
+	printf("\n\n\t\t\t非常感谢购买《OpenCV3编程入门》一书！\n");
+	printf("\n\n\t\t\t此为本书OpenCV3版的第73个配套示例程序\n");
+	printf("\n\n\t\t\t   当前使用的OpenCV版本为：" CV_VERSION);
+	printf("\n\n  ----------------------------------------------------------------------------\n");
+
+	//输出一些帮助信息
+	printf("\n\n\n\t\t\t欢迎来到【矩形包围示例】示例程序~\n\n");
+	printf("\n\n\t按键操作说明: \n\n"
+		"\t\t键盘按键【ESC】、【Q】、【q】- 退出程序\n\n"
+		"\t\t键盘按键任意键 - 重新生成随机点，并寻找最小面积的包围矩形\n");
 }
+
 int main()
 {
-	//【1】载入原始图和Mat变量定义   
-	Mat srcImage = imread("E:\\opencvupboard\\opencva\\Project1\\Project1\\2.png");  //工程目录下应该有一张名为1.jpg的素材图
-	Mat midImage, dstImage(srcImage.size(),srcImage.type());//临时变量和目标图的定义
+	//改变console字体颜色
+	system("color 1F");
 
-						   //【2】进行边缘检测和转化为灰度图
-	Canny(srcImage, midImage, 50, 200, 3);//进行一此canny边缘检测
-	//cvtColor(midImage, dstImage, COLOR_GRAY2BGR);//转化边缘检测后的图为灰度图
+	//显示帮助文字
+	ShowHelpText();
 
-												 //【3】进行霍夫线变换
-	vector<Vec2f> lines;//定义一个矢量结构lines用于存放得到的线段矢量集合
-	HoughLines(midImage, lines, 1, CV_PI / 180, 130, 0, 0);
+	//初始化变量和随机值
+	Mat image(600, 600, CV_8UC3);
+	RNG& rng = theRNG();
 
-	//【4】依次在图中绘制出每条线段
-	for (size_t i = 0; i < lines.size(); i++)
+	//循环，按下ESC,Q,q键程序退出，否则有键按下便一直更新
+	while (1)
 	{
-		float rho = lines[i][0], theta = lines[i][1];
-		Point pt1, pt2;
-		double a = cos(theta), b = sin(theta);
-		double x0 = a*rho, y0 = b*rho;
-		pt1.x = cvRound(x0 + 500 * (-b));
-		pt1.y = cvRound(y0 + 500 * (a));
-		pt2.x = cvRound(x0 - 500 * (-b));
-		pt2.y = cvRound(y0 - 500 * (a));
-		cout << lines[i][0]<<"\t"<< lines[i][1]<<endl;
-		cout << pt1 << endl;
-		cout << pt2 << endl;
-		//此句代码的OpenCV2版为:
-		//line( dstImage, pt1, pt2, Scalar(55,100,195), 1, CV_AA);
-		//此句代码的OpenCV3版为:
-		line(dstImage, pt1, pt2, Scalar(55, 100, 195), 1, LINE_AA);
+		//参数初始化
+		int count = rng.uniform(3, 103);//随机生成点的数量
+		vector<Point> points;//点值
+
+							 //随机生成点坐标
+		for (int i = 0; i < count; i++)
+		{
+
+			Point point;
+			cout << count << endl;
+			point.x = rng.uniform(image.cols / 4, image.cols * 3 / 4);
+			point.y = rng.uniform(image.rows / 4, image.rows * 3 / 4);
+
+			points.push_back(point);
+		}
+
+		//对给定的 2D 点集，寻找最小面积的包围矩形
+		RotatedRect box = minAreaRect(Mat(points));
+		Point2f vertex[4];
+		Point2f Circle;
+		float radius;
+		//对给定的 2D 点集，寻找最小面积的包围圆心
+		minEnclosingCircle(Mat(points),Circle,radius);
+		//绘制出随机颜色的点
+		image = Scalar::all(0);
+		for (int i = 0; i < count; i++)
+			circle(image, points[i], 3, Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255)), FILLED, LINE_AA);
+
+
+		////绘制出最小面积的包围矩形
+		//for (int i = 0; i < 4; i++)
+		//	line(image, vertex[i], vertex[(i + 1) % 4], Scalar(100, 200, 211), 2, LINE_AA);
+		//绘制出最小面积的包围矩形
+		circle(image, Circle, radius, Scalar(0,0,255), LINE_4, LINE_AA);
+
+		//显示窗口
+		imshow("矩形包围示例", image);
+
+		//按下ESC,Q,或者q，程序退出
+		char key = (char)waitKey();
+		if (key == 27 || key == 'q' || key == 'Q') // 'ESC'
+			break;
 	}
-
-	//【5】显示原始图  
-	imshow("【原始图】", srcImage);
-
-	//【6】边缘检测后的图 
-	imshow("【边缘检测后的图】", midImage);
-
-	//【7】显示效果图  
-	imshow("【效果图】", dstImage);
-
-	waitKey(0);
 
 	return 0;
 }
-//int main(int argc,char*argv[]) {
-//	Mat img(1000,1000,CV_8UC3,Scalar(255,255,255));
-//	Point A(400,10), B(400,400);
-//	DrawLine(img,A,B);
-//	imshow("图片显示",img);
-//	waitKey(0);
-//}
-
-
