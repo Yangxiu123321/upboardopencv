@@ -1,7 +1,6 @@
-﻿
-//--------------------------------------【程序说明】-------------------------------------------
-//		程序说明：《OpenCV3编程入门》OpenCV3版书本配套示例程序49
-//		程序描述：漫水填充floodFill函数用法示例
+﻿//--------------------------------------【程序说明】-------------------------------------------
+//		程序说明：《OpenCV3编程入门》OpenCV3版书本配套示例程序61
+//		程序描述：HoughLines函数用法示例
 //		开发测试所用操作系统： Windows 7 64bit
 //		开发测试所用IDE版本：Visual Studio 2010
 //		开发测试所用OpenCV版本：	3.0 beta
@@ -10,48 +9,83 @@
 //------------------------------------------------------------------------------------------------
 
 
+
 //---------------------------------【头文件、命名空间包含部分】----------------------------
 //		描述：包含程序所使用的头文件和命名空间
 //------------------------------------------------------------------------------------------------
-#include <opencv2/opencv.hpp>  
-#include <opencv2/imgproc/imgproc.hpp>  
-#include <iostream>
-#define WINDOWS_NAME "【效果图】"
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 using namespace cv;
 using namespace std;
-int g_SlideV1 = 1;
-int g_SlideV2 = 254;
-int g_SlideV1Min = 254;
-int g_SlideV2Max = 254;
-Mat src;
-Mat src1, src2;
-Rect ccomp;
 
-//-----------------------------------【main( )函数】--------------------------------------------  
-//      描述：控制台应用程序的入口函数，我们的程序从这里开始  
-//----------------------------------------------------------------------------------------------- 
-void on_TrackBar(int ,void *) {
-	src = src1.clone();
-	floodFill(src, Point(50, 300),/*1*/ Scalar(255, 0, 0), &ccomp, Scalar(g_SlideV1, g_SlideV1, g_SlideV1), Scalar(g_SlideV2, g_SlideV2, g_SlideV2));
-	imshow(WINDOWS_NAME, src);
-	cout <<"V1 is " <<g_SlideV1 << endl;
-	cout <<"V2 is " << g_SlideV2 << endl;
 
-}
-int main(int argv,char*argc[])
+//-----------------------------------【main( )函数】--------------------------------------------
+//		描述：控制台应用程序的入口函数，我们的程序从这里开始
+//-----------------------------------------------------------------------------------------------
+void DrawLine(Mat img, Point start, Point end)
 {
-	src = imread("E:\\opencvupboard\\opencva\\Project1\\Project1\\1.jpg");
-	src1 = src.clone(); src2 = src.clone();
-	imshow("【原始图】", src);
-	namedWindow(WINDOWS_NAME,1);
-	char g_MinName[100];
-	sprintf_s(g_MinName,20,"min:1", g_SlideV1);
-	char g_MaxName[100];
-	sprintf_s(g_MaxName, 20, "max:1", g_SlideV2);
-	createTrackbar(g_MinName, WINDOWS_NAME, &g_SlideV1, g_SlideV1Min, on_TrackBar);
-	createTrackbar(g_MaxName, WINDOWS_NAME, &g_SlideV2, g_SlideV2Max, on_TrackBar);
-	on_TrackBar(g_SlideV1, 0);
-	on_TrackBar(g_SlideV2, 0);
+	int thickness = 2;
+	int lineType = 8;
+	line(img,
+		start,
+		end,
+		Scalar(0, 0, 0),
+		thickness,
+		lineType);
+}
+int main()
+{
+	//【1】载入原始图和Mat变量定义   
+	Mat srcImage = imread("E:\\opencvupboard\\opencva\\Project1\\Project1\\2.png");  //工程目录下应该有一张名为1.jpg的素材图
+	Mat midImage, dstImage(srcImage.size(),srcImage.type());//临时变量和目标图的定义
+
+						   //【2】进行边缘检测和转化为灰度图
+	Canny(srcImage, midImage, 50, 200, 3);//进行一此canny边缘检测
+	//cvtColor(midImage, dstImage, COLOR_GRAY2BGR);//转化边缘检测后的图为灰度图
+
+												 //【3】进行霍夫线变换
+	vector<Vec2f> lines;//定义一个矢量结构lines用于存放得到的线段矢量集合
+	HoughLines(midImage, lines, 1, CV_PI / 180, 130, 0, 0);
+
+	//【4】依次在图中绘制出每条线段
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		float rho = lines[i][0], theta = lines[i][1];
+		Point pt1, pt2;
+		double a = cos(theta), b = sin(theta);
+		double x0 = a*rho, y0 = b*rho;
+		pt1.x = cvRound(x0 + 500 * (-b));
+		pt1.y = cvRound(y0 + 500 * (a));
+		pt2.x = cvRound(x0 - 500 * (-b));
+		pt2.y = cvRound(y0 - 500 * (a));
+		cout << lines[i][0]<<"\t"<< lines[i][1]<<endl;
+		cout << pt1 << endl;
+		cout << pt2 << endl;
+		//此句代码的OpenCV2版为:
+		//line( dstImage, pt1, pt2, Scalar(55,100,195), 1, CV_AA);
+		//此句代码的OpenCV3版为:
+		line(dstImage, pt1, pt2, Scalar(55, 100, 195), 1, LINE_AA);
+	}
+
+	//【5】显示原始图  
+	imshow("【原始图】", srcImage);
+
+	//【6】边缘检测后的图 
+	imshow("【边缘检测后的图】", midImage);
+
+	//【7】显示效果图  
+	imshow("【效果图】", dstImage);
+
 	waitKey(0);
+
 	return 0;
 }
+//int main(int argc,char*argv[]) {
+//	Mat img(1000,1000,CV_8UC3,Scalar(255,255,255));
+//	Point A(400,10), B(400,400);
+//	DrawLine(img,A,B);
+//	imshow("图片显示",img);
+//	waitKey(0);
+//}
+
+
