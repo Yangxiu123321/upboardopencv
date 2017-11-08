@@ -1,103 +1,135 @@
-﻿//--------------------------------------【程序说明】-------------------------------------------
-//		程序说明：《OpenCV3编程入门》OpenCV3版书本配套示例程序73
-//		程序描述：创建包围轮廓的矩形边界
-//		开发测试所用操作系统： Windows 7 64bit
-//		开发测试所用IDE版本：Visual Studio 2010
-//		开发测试所用OpenCV版本：	3.0 beta
-//		2014年11月 Created by @浅墨_毛星云
-//		2014年12月 Revised by @浅墨_毛星云
-//------------------------------------------------------------------------------------------------
+﻿#include <stdio.h>  
+#include <opencv/highgui.h>  
+#include <time.h>  
+#include <opencv2/opencv.hpp>  
+#include <opencv/cv.h>  
+#include <iostream> 
 
-
-
-//---------------------------------【头文件、命名空间包含部分】----------------------------
-//		描述：包含程序所使用的头文件和命名空间
-//------------------------------------------------------------------------------------------------
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include <iostream>
-using namespace cv;
 using namespace std;
+using namespace cv;
 
-
-
-//-----------------------------------【ShowHelpText( )函数】-----------------------------
-//          描述：输出一些帮助信息
-//----------------------------------------------------------------------------------------------
-static void ShowHelpText()
+int main(int argc, char *argv[])
 {
 
-	//输出欢迎信息和OpenCV版本
-	printf("\n\n\t\t\t非常感谢购买《OpenCV3编程入门》一书！\n");
-	printf("\n\n\t\t\t此为本书OpenCV3版的第73个配套示例程序\n");
-	printf("\n\n\t\t\t   当前使用的OpenCV版本为：" CV_VERSION);
-	printf("\n\n  ----------------------------------------------------------------------------\n");
-
-	//输出一些帮助信息
-	printf("\n\n\n\t\t\t欢迎来到【矩形包围示例】示例程序~\n\n");
-	printf("\n\n\t按键操作说明: \n\n"
-		"\t\t键盘按键【ESC】、【Q】、【q】- 退出程序\n\n"
-		"\t\t键盘按键任意键 - 重新生成随机点，并寻找最小面积的包围矩形\n");
-}
-
-int main()
-{
-	//改变console字体颜色
-	system("color 1F");
-
-	//显示帮助文字
-	ShowHelpText();
-
-	//初始化变量和随机值
-	Mat image(600, 600, CV_8UC3);
-	RNG& rng = theRNG();
-
-	//循环，按下ESC,Q,q键程序退出，否则有键按下便一直更新
-	while (1)
+	Mat srcImage;
+	Mat resizeImage;
+	Mat grayImage;
+	Mat equalizeHistImage;
+	Mat contrastandbrightImage;
+	Mat sobelImage;
+	Mat thresholdImage;
+	Mat dilateImage;
+	Mat areaImage;
+	Mat ellipseImage;
+	srcImage = imread("E:\\opencvstu\\picture\\erwei.jpg");
+	Size dsize = Size(srcImage.cols*0.3, srcImage.rows*0.3);
+	//对图片进行缩放
+	resize(srcImage, resizeImage, dsize);
+	//测试用
+	/*cout << srcImage.size() << endl;
+	cout << resizeImage.size()<<endl;*/
+	//
+	//转换为灰度图
+	cvtColor(resizeImage, grayImage, CV_BGR2GRAY);
+	equalizeHist(grayImage, equalizeHistImage);
+	////亮度、对比度增强
+	contrastandbrightImage = Mat::zeros(equalizeHistImage.size(), equalizeHistImage.type());
+	for (int y = 0; y < equalizeHistImage.rows; y++)
 	{
-		//参数初始化
-		int count = rng.uniform(3, 103);//随机生成点的数量
-		vector<Point> points;//点值
-
-							 //随机生成点坐标
-		for (int i = 0; i < count; i++)
+		for (int x = 0; x <equalizeHistImage.cols; x++)
 		{
-
-			Point point;
-			cout << count << endl;
-			point.x = rng.uniform(image.cols / 4, image.cols * 3 / 4);
-			point.y = rng.uniform(image.rows / 4, image.rows * 3 / 4);
-
-			points.push_back(point);
+			contrastandbrightImage.at<uchar>(y, x) = saturate_cast<uchar>(6 * (equalizeHistImage.at<uchar>(y, x)));
 		}
-
-		//对给定的 2D 点集，寻找最小面积的包围矩形
-		RotatedRect box = minAreaRect(Mat(points));
-		Point2f vertex[4];
-		Point2f Circle;
-		float radius;
-		//对给定的 2D 点集，寻找最小面积的包围圆心
-		minEnclosingCircle(Mat(points),Circle,radius);
-		//绘制出随机颜色的点
-		image = Scalar::all(0);
-		for (int i = 0; i < count; i++)
-			circle(image, points[i], 3, Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255)), FILLED, LINE_AA);
-
-
-		////绘制出最小面积的包围矩形
-		//for (int i = 0; i < 4; i++)
-		//	line(image, vertex[i], vertex[(i + 1) % 4], Scalar(100, 200, 211), 2, LINE_AA);
-		//绘制出最小面积的包围矩形
-		circle(image, Circle, radius, Scalar(0,0,255), LINE_4, LINE_AA);
-
-		//显示窗口
-		imshow("矩形包围示例", image);
-
-		//按下ESC,Q,或者q，程序退出
-		char key = (char)waitKey();
-		if (key == 27 || key == 'q' || key == 'Q') // 'ESC'
-			break;
 	}
+	//均值滤波
+	blur(contrastandbrightImage, contrastandbrightImage, Size(3, 3));
+	//Sobel(contrastandbrightImage, sobelImage, CV_8U, 0,1 ,1, 1, 0, BORDER_DEFAULT);
+	//阈值化
+	threshold(contrastandbrightImage, thresholdImage, 0, 255, CV_THRESH_OTSU + CV_THRESH_BINARY_INV);
+	Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
+	//进行膨胀操作，多次膨胀可以区域连通
+	dilate(thresholdImage, dilateImage, element);
+	dilate(dilateImage, dilateImage, element);
+	dilate(dilateImage, dilateImage, element);
+	dilate(dilateImage, dilateImage, element);
+	dilate(dilateImage, dilateImage, element);
 
-	return 0;
+	//dilateImage.copyTo(areaImage);
+	//vector< vector< Point> > contours;  
+	//findContours(areaImage,contours,CV_RETR_TREE,  CV_CHAIN_APPROX_NONE); 
+	//vector<vector<Point> >::iterator itc= contours.begin();  
+	//while (itc!=contours.end()) 
+	//{  
+	//  if( itc->size()<100)
+	//  {  
+	//      itc= contours.erase(itc);  
+	//  }
+	//   else
+	//   {
+	//     ++itc;  
+	//  }
+	//}  
+	//drawContours(areaImage, contours, -1, Scalar(255), CV_FILLED);
+
+	//找轮廓 两步判断  一个是大小  一个是长短轴比比  认为面积比60大，长短轴比比1.3小的区域是二维码区域  再做下一步判断
+	dilateImage.copyTo(ellipseImage);
+	vector<vector<Point> > twocontours;
+	vector<Vec4i>twohierarchy;
+	findContours(ellipseImage, twocontours, twohierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
+	vector<Moments> mu(twocontours.size());
+	vector<Point2f> mc(twocontours.size());
+	for (int k = 0; k < (int)twocontours.size(); k++)    //查找轮廓
+	{
+		if (int(twocontours.at(k).size()) <= 60)//轮廓面积小于60的不处理
+		{
+			drawContours(ellipseImage, twocontours, k, Scalar(0), CV_FILLED);
+		}
+		else
+		{
+			RotatedRect rRect = fitEllipse(twocontours.at(k));
+			double majorAxis = rRect.size.height > rRect.size.width ? rRect.size.height : rRect.size.width;
+			double minorAxis = rRect.size.height > rRect.size.width ? rRect.size.width : rRect.size.height;
+			float rate = majorAxis / minorAxis;
+			if (rate<1.3)   //长短轴之比小于1.4的轮廓
+			{
+				//可能为二维码的区域，判断是否为二维码区域
+				printf("%f\n", rate);
+				//求区域的质心
+				mu[k] = moments(twocontours[k], false);
+				mc[k] = Point2d(mu[k].m10 / mu[k].m00, mu[k].m01 / mu[k].m00);
+				//打印质心
+				printf("x=%f,y=%f\n", mc[k].x, mc[k].y);
+				//打印图像的长宽
+				printf("图像的长%d，图像的宽%d\n", resizeImage.cols, resizeImage.rows);
+				//画出质心
+				Point center = Point(mc[k].x, mc[k].y);
+				int r = 10;
+				circle(resizeImage, center, r, Scalar(255, 0, 0));
+				//判断质心是不是在图像中间   三分之一 < 质心 < 三分之二
+				if ((int)mc[k].x<(int)2 * (resizeImage.cols / 3) && (int)mc[k].x>(int)(resizeImage.cols / 3))
+				{
+					if ((int)mc[k].y<(int)2 * (resizeImage.rows / 3) && (int)mc[k].y>(int)(resizeImage.rows / 3))
+					{
+						drawContours(resizeImage, twocontours, k, Scalar(255, 0, 0), CV_FILLED);//把轮廓涂成蓝色
+						printf("蓝色是二维码区域\n");
+					}
+				}
+			}
+			else  //长短轴之比大于1.4的轮廓  不是二维码区域
+			{
+				drawContours(resizeImage, twocontours, k, Scalar(0, 0, 255), CV_FILLED);//把轮廓涂成红色
+			}
+		}
+	}
+	imshow("原始图", srcImage);
+	imshow("缩小图", resizeImage);
+	imshow("灰度图", grayImage);
+	imshow("直方图", equalizeHistImage);
+	imshow("对比度和亮度增强", contrastandbrightImage);
+	//imshow("soble检测",sobelImage);
+	imshow("二值化结果", thresholdImage);
+	imshow("膨胀", dilateImage);
+	//imshow("删除小面积",areaImage);
+	imshow("长短轴", ellipseImage);
+	waitKey(0);
 }
