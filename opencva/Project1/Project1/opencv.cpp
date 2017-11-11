@@ -1,135 +1,66 @@
-﻿#include <stdio.h>  
-#include <opencv/highgui.h>  
-#include <time.h>  
-#include <opencv2/opencv.hpp>  
-#include <opencv/cv.h>  
-#include <iostream> 
+﻿//#include "stdafx.h"
+#include <iostream>
+#include <opencv2/core/core.hpp>
+#include <opencv/cv.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
-using namespace std;
 using namespace cv;
+using namespace std;
+Mat src;
+Mat src_gray;
+int thresh = 30;
+int max_thresh = 255;
 
-int main(int argc, char *argv[])
-{
-
-	Mat srcImage;
-	Mat resizeImage;
-	Mat grayImage;
-	Mat equalizeHistImage;
-	Mat contrastandbrightImage;
-	Mat sobelImage;
-	Mat thresholdImage;
-	Mat dilateImage;
-	Mat areaImage;
-	Mat ellipseImage;
-	srcImage = imread("E:\\opencvstu\\picture\\erwei.jpg");
-	Size dsize = Size(srcImage.cols*0.3, srcImage.rows*0.3);
-	//对图片进行缩放
-	resize(srcImage, resizeImage, dsize);
-	//测试用
-	/*cout << srcImage.size() << endl;
-	cout << resizeImage.size()<<endl;*/
-	//
-	//转换为灰度图
-	cvtColor(resizeImage, grayImage, CV_BGR2GRAY);
-	equalizeHist(grayImage, equalizeHistImage);
-	////亮度、对比度增强
-	contrastandbrightImage = Mat::zeros(equalizeHistImage.size(), equalizeHistImage.type());
-	for (int y = 0; y < equalizeHistImage.rows; y++)
+int main(int argv,char*argc[])
+{ 
+	src = imread("E:\\opencvstu\\picture\\point.png", CV_LOAD_IMAGE_COLOR); 	//注意路径得换成自己的
+	cvtColor(src, src_gray, CV_BGR2GRAY);//灰度化 	
+	GaussianBlur(src, src, Size(3, 3), 0.1, 0, BORDER_DEFAULT);
+	blur(src_gray, src_gray, Size(3, 3)); //滤波 	
+	namedWindow("image", CV_WINDOW_AUTOSIZE);
+	imshow("image", src);
+	moveWindow("image", 20, 20);
+	//定义Canny边缘检测图像 	
+	Mat canny_output;
+	vector<vector<Point> > contours;
+	vector<Vec4i> hierarchy;
+	//利用canny算法检测边缘 	
+	Canny(src_gray, canny_output, thresh, thresh * 3, 3);
+	namedWindow("canny", CV_WINDOW_AUTOSIZE);
+	imshow("canny", canny_output);
+	moveWindow("canny", 550, 20);
+	//查找轮廓 	
+	findContours(canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+	//计算轮廓矩 	
+	vector<Moments> mu(contours.size());
+	for (int i = 0; i < contours.size(); i++)
 	{
-		for (int x = 0; x <equalizeHistImage.cols; x++)
-		{
-			contrastandbrightImage.at<uchar>(y, x) = saturate_cast<uchar>(6 * (equalizeHistImage.at<uchar>(y, x)));
-		}
+		mu[i] = moments(contours[i], false);
 	}
-	//均值滤波
-	blur(contrastandbrightImage, contrastandbrightImage, Size(3, 3));
-	//Sobel(contrastandbrightImage, sobelImage, CV_8U, 0,1 ,1, 1, 0, BORDER_DEFAULT);
-	//阈值化
-	threshold(contrastandbrightImage, thresholdImage, 0, 255, CV_THRESH_OTSU + CV_THRESH_BINARY_INV);
-	Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
-	//进行膨胀操作，多次膨胀可以区域连通
-	dilate(thresholdImage, dilateImage, element);
-	dilate(dilateImage, dilateImage, element);
-	dilate(dilateImage, dilateImage, element);
-	dilate(dilateImage, dilateImage, element);
-	dilate(dilateImage, dilateImage, element);
-
-	//dilateImage.copyTo(areaImage);
-	//vector< vector< Point> > contours;  
-	//findContours(areaImage,contours,CV_RETR_TREE,  CV_CHAIN_APPROX_NONE); 
-	//vector<vector<Point> >::iterator itc= contours.begin();  
-	//while (itc!=contours.end()) 
-	//{  
-	//  if( itc->size()<100)
-	//  {  
-	//      itc= contours.erase(itc);  
-	//  }
-	//   else
-	//   {
-	//     ++itc;  
-	//  }
-	//}  
-	//drawContours(areaImage, contours, -1, Scalar(255), CV_FILLED);
-
-	//找轮廓 两步判断  一个是大小  一个是长短轴比比  认为面积比60大，长短轴比比1.3小的区域是二维码区域  再做下一步判断
-	dilateImage.copyTo(ellipseImage);
-	vector<vector<Point> > twocontours;
-	vector<Vec4i>twohierarchy;
-	findContours(ellipseImage, twocontours, twohierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
-	vector<Moments> mu(twocontours.size());
-	vector<Point2f> mc(twocontours.size());
-	for (int k = 0; k < (int)twocontours.size(); k++)    //查找轮廓
+	//计算轮廓的质心 	
+	vector<Point2f> mc(contours.size());
+	for (int i = 0; i < contours.size(); i++)
 	{
-		if (int(twocontours.at(k).size()) <= 60)//轮廓面积小于60的不处理
-		{
-			drawContours(ellipseImage, twocontours, k, Scalar(0), CV_FILLED);
-		}
-		else
-		{
-			RotatedRect rRect = fitEllipse(twocontours.at(k));
-			double majorAxis = rRect.size.height > rRect.size.width ? rRect.size.height : rRect.size.width;
-			double minorAxis = rRect.size.height > rRect.size.width ? rRect.size.width : rRect.size.height;
-			float rate = majorAxis / minorAxis;
-			if (rate<1.3)   //长短轴之比小于1.4的轮廓
-			{
-				//可能为二维码的区域，判断是否为二维码区域
-				printf("%f\n", rate);
-				//求区域的质心
-				mu[k] = moments(twocontours[k], false);
-				mc[k] = Point2d(mu[k].m10 / mu[k].m00, mu[k].m01 / mu[k].m00);
-				//打印质心
-				printf("x=%f,y=%f\n", mc[k].x, mc[k].y);
-				//打印图像的长宽
-				printf("图像的长%d，图像的宽%d\n", resizeImage.cols, resizeImage.rows);
-				//画出质心
-				Point center = Point(mc[k].x, mc[k].y);
-				int r = 10;
-				circle(resizeImage, center, r, Scalar(255, 0, 0));
-				//判断质心是不是在图像中间   三分之一 < 质心 < 三分之二
-				if ((int)mc[k].x<(int)2 * (resizeImage.cols / 3) && (int)mc[k].x>(int)(resizeImage.cols / 3))
-				{
-					if ((int)mc[k].y<(int)2 * (resizeImage.rows / 3) && (int)mc[k].y>(int)(resizeImage.rows / 3))
-					{
-						drawContours(resizeImage, twocontours, k, Scalar(255, 0, 0), CV_FILLED);//把轮廓涂成蓝色
-						printf("蓝色是二维码区域\n");
-					}
-				}
-			}
-			else  //长短轴之比大于1.4的轮廓  不是二维码区域
-			{
-				drawContours(resizeImage, twocontours, k, Scalar(0, 0, 255), CV_FILLED);//把轮廓涂成红色
-			}
-		}
+		mc[i] = Point2d(mu[i].m10 / mu[i].m00, mu[i].m01 / mu[i].m00);
+		cout << mc[i] << endl;
 	}
-	imshow("原始图", srcImage);
-	imshow("缩小图", resizeImage);
-	imshow("灰度图", grayImage);
-	imshow("直方图", equalizeHistImage);
-	imshow("对比度和亮度增强", contrastandbrightImage);
-	//imshow("soble检测",sobelImage);
-	imshow("二值化结果", thresholdImage);
-	imshow("膨胀", dilateImage);
-	//imshow("删除小面积",areaImage);
-	imshow("长短轴", ellipseImage);
+	//画轮廓及其质心并显示 	
+	Mat drawing = Mat::zeros(canny_output.size(), CV_8UC3);
+	for (int i = 0; i < contours.size(); i++)
+	{
+		Scalar color = Scalar(255, 0, 0);
+		drawContours(drawing, contours, i, color, 2, 8, hierarchy, 0, Point());
+		circle(drawing, mc[i], 5, Scalar(0, 0, 255), -1, 8, 0);
+		rectangle(drawing, boundingRect(contours.at(i)), cvScalar(0, 255, 0));
+		char tam[100];
+		sprintf_s(tam, "(%0.0f,%0.0f)", mc[i].x, mc[i].y);
+		putText(drawing, tam, Point(mc[i].x, mc[i].y), FONT_HERSHEY_SIMPLEX, 0.4, cvScalar(255, 0, 255), 1);
+	}
+	namedWindow("Contours", CV_WINDOW_AUTOSIZE);
+	imshow("Contours", drawing);
+	moveWindow("Contours", 1100, 20);
 	waitKey(0);
+	src.release();
+	src_gray.release();
+	return 0;
 }
